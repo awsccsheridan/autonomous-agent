@@ -495,25 +495,4 @@ If tasks appear in the dashboard, the project is working.
 
 ---
 
-## Current MVP Features
 
-- Create tasks using plain English
-- Extract task details with Amazon Bedrock
-- Store tasks in DynamoDB
-- View saved tasks in dashboard
-- Deploy backend with AWS CDK
-- Deploy frontend with AWS Amplify
-
----
-
-## Future Improvements
-
-- Mark tasks as completed
-- Edit tasks
-- Delete tasks
-- Filter by subject/status
-- Add progress bar
-- Add reminders using EventBridge
-- Add user login with Cognito
-- Add better UI animations
-- Add optional AI study suggestions

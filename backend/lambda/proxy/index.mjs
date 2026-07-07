@@ -4,6 +4,12 @@ import {
 } from "@aws-sdk/client-bedrock-agent-runtime";
 import { randomUUID } from "crypto";
 import { createTask, listTasks, updateTask } from "./tasks-db.mjs";
+import {
+  isCompleteIntent,
+  isGenericAgentReply,
+  isListIntent,
+  pickBestTaskMatch,
+} from "./task-intent.mjs";
 
 const bedrockAgent = new BedrockAgentRuntimeClient({
   region: process.env.AWS_REGION || "us-east-1",
@@ -68,10 +74,38 @@ function parseLeakedAgentAction(text) {
   return null;
 }
 
-async function executeLeakedAction(parsed) {
+async function resolveUpdateTarget(params, userMessage) {
+  if (params.taskId) {
+    return { type: "match", taskId: params.taskId };
+  }
+
+  const tasks = await listTasks();
+  const match = pickBestTaskMatch(userMessage, tasks);
+
+  if (match.type === "match") {
+    return { type: "match", taskId: match.task.taskId };
+  }
+
+  if (match.type === "ambiguous") {
+    const names = match.candidates.map((task) => `"${task.title}"`).join(", ");
+    return {
+      type: "ambiguous",
+      message: `Which task did you mean? I found: ${names}`,
+    };
+  }
+
+  const pending = tasks.filter((task) => task.status === "pending");
+  if (pending.length === 1) {
+    return { type: "match", taskId: pending[0].taskId };
+  }
+
+  return { type: "none" };
+}
+
+async function executeLeakedAction(parsed, userMessage) {
   if (parsed.action === "create") {
     if (!parsed.params.title?.trim()) {
-      return "I couldn't create that task because the title was missing.";
+      return null;
     }
 
     const task = await createTask({
@@ -101,32 +135,85 @@ async function executeLeakedAction(parsed) {
   }
 
   if (parsed.action === "update") {
-    const taskId = parsed.params.taskId;
+    const updates = { ...parsed.params };
 
-    if (!taskId) {
-      const tasks = await listTasks();
-      const pending = tasks.filter((task) => task.status === "pending");
-
-      if (pending.length === 1) {
-        const task = await updateTask(pending[0].taskId, parsed.params);
-
-        if (!task) {
-          return "I couldn't find that task to update.";
-        }
-
-        return `Updated "${task.title}" — status is now ${task.status}.`;
-      }
-
-      return "I need to know which task to update. Try naming it more specifically.";
+    if (!updates.status && isCompleteIntent(userMessage)) {
+      updates.status = "completed";
     }
 
-    const task = await updateTask(taskId, parsed.params);
+    const target = await resolveUpdateTarget(updates, userMessage);
+
+    if (target.type === "ambiguous") {
+      return target.message;
+    }
+
+    if (target.type !== "match") {
+      return null;
+    }
+
+    const task = await updateTask(target.taskId, updates);
 
     if (!task) {
       return "I couldn't find that task to update.";
     }
 
+    if (task.status === "completed") {
+      return `Nice work! I marked "${task.title}" as done.`;
+    }
+
     return `Updated "${task.title}" — status is now ${task.status}.`;
+  }
+
+  return null;
+}
+
+async function tryLocalIntent(userMessage) {
+  if (isCompleteIntent(userMessage)) {
+    const tasks = await listTasks();
+    const match = pickBestTaskMatch(userMessage, tasks);
+
+    if (match.type === "ambiguous") {
+      const names = match.candidates.map((task) => `"${task.title}"`).join(", ");
+      return `Which task did you finish? I found: ${names}`;
+    }
+
+    if (match.type === "match") {
+      const updated = await updateTask(match.task.taskId, {
+        status: "completed",
+      });
+
+      if (updated) {
+        return `Nice work! I marked "${updated.title}" as done.`;
+      }
+    }
+
+    const pending = tasks.filter((task) => task.status === "pending");
+    if (pending.length === 1) {
+      const updated = await updateTask(pending[0].taskId, {
+        status: "completed",
+      });
+
+      if (updated) {
+        return `Nice work! I marked "${updated.title}" as done.`;
+      }
+    }
+
+    return 'I couldn\'t tell which task you finished. Try something like "I finished the DP assignment".';
+  }
+
+  if (isListIntent(userMessage)) {
+    const tasks = await listTasks();
+
+    if (tasks.length === 0) {
+      return "Your list is empty right now.";
+    }
+
+    const lines = tasks.map(
+      (task) =>
+        `- ${task.title} [${task.status}] due ${task.dueDate} (${task.priority} priority)`
+    );
+
+    return `Here's your list:\n${lines.join("\n")}`;
   }
 
   return null;
@@ -152,7 +239,7 @@ async function invokeBedrockAgent(message, sessionId) {
     }
   }
 
-  return completion.trim() || "The agent completed your request.";
+  return completion.trim();
 }
 
 async function getAgentReply(message, sessionId) {
@@ -160,16 +247,20 @@ async function getAgentReply(message, sessionId) {
   const leakedAction = parseLeakedAgentAction(rawReply);
 
   if (leakedAction) {
-    const executed = await executeLeakedAction(leakedAction);
-
+    const executed = await executeLeakedAction(leakedAction, message);
     if (executed) {
       return executed;
     }
   }
 
+  const localReply = await tryLocalIntent(message);
+  if (localReply) {
+    return localReply;
+  }
+
   const cleaned = stripFunctionMarkup(rawReply);
 
-  if (cleaned) {
+  if (cleaned && !isGenericAgentReply(cleaned)) {
     return cleaned;
   }
 
@@ -186,7 +277,7 @@ async function getAgentReply(message, sessionId) {
     return `Done! I added "${task.title}" to your list (due ${task.dueDate}, ${task.priority} priority).`;
   }
 
-  return "Done! I updated your task list.";
+  return 'I couldn\'t figure out what to change. Try naming the task, like "I finished the DP assignment".';
 }
 
 function parseTaskIdFromPath(path) {
@@ -274,4 +365,3 @@ export async function handler(event) {
     });
   }
 }
-

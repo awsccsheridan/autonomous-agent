@@ -3,7 +3,6 @@ import {
   DynamoDBDocumentClient,
   PutCommand,
   ScanCommand,
-  UpdateCommand,
 } from "@aws-sdk/lib-dynamodb";
 import { randomUUID } from "crypto";
 
@@ -63,29 +62,34 @@ export async function updateTask(taskId, updates) {
     return null;
   }
 
-  const status = ["pending", "completed"].includes(updates.status || "")
-    ? updates.status
-    : existing.status;
+  const next = { ...existing };
 
-  const priority = ["low", "medium", "high"].includes(updates.priority || "")
-    ? updates.priority
-    : existing.priority;
+  if (updates.title?.trim()) {
+    next.title = updates.title.trim();
+  }
+
+  if (updates.dueDate?.trim()) {
+    next.dueDate = updates.dueDate.trim();
+  }
+
+  if (updates.category?.trim()) {
+    next.category = updates.category.trim();
+  }
+
+  if (["pending", "completed"].includes(updates.status || "")) {
+    next.status = updates.status;
+  }
+
+  if (["low", "medium", "high"].includes(updates.priority || "")) {
+    next.priority = updates.priority;
+  }
 
   await dynamo.send(
-    new UpdateCommand({
+    new PutCommand({
       TableName: tableName(),
-      Key: { taskId },
-      UpdateExpression: "SET #status = :status, #priority = :priority",
-      ExpressionAttributeNames: {
-        "#status": "status",
-        "#priority": "priority",
-      },
-      ExpressionAttributeValues: {
-        ":status": status,
-        ":priority": priority,
-      },
+      Item: next,
     })
   );
 
-  return { ...existing, status, priority };
+  return next;
 }

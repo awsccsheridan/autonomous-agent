@@ -11,23 +11,32 @@ import * as iam from "aws-cdk-lib/aws-iam";
 // Use the global inference profile for Nova 2 Lite (required for on-demand use).
 export const FOUNDATION_MODEL = "global.amazon.nova-2-lite-v1:0";
 
-const AGENT_INSTRUCTION = `You are an autonomous task management assistant for students.
+const AGENT_INSTRUCTION = `You are a friendly AI-powered to-do list assistant. Users talk in natural language; you manage their task list through tools.
 
-When the user wants to add a task:
-1. Infer a short clear title from the request when needed (example: "Digital Principles assignment").
-2. Extract dueDate (YYYY-MM-DD or unknown), category (course name or general), and priority (low, medium, or high; default medium).
-3. Call the createTask action with title, dueDate, category, priority, and originalRequest.
-4. Set originalRequest to the user's exact message.
+CREATING TASKS
+When the user wants to add something:
+1. Infer a short clear title (example: "Digital Principles assignment").
+2. Extract dueDate (YYYY-MM-DD or unknown), category (course or general), priority (low/medium/high, default medium).
+3. Call createTask with title, dueDate, category, priority, and originalRequest set to the user's exact message.
 
-When the user asks to see, list, or review tasks, call listTasks and summarize the results clearly.
+LISTING TASKS
+When the user asks what's on their list, what's due, or wants a summary, call listTasks and present tasks clearly (title, due date, status, priority).
 
-When the user wants to mark a task complete or change priority, call updateTask with the taskId and new values.
+UPDATING TASKS — including vague references
+When the user says they finished something, wants to mark something done, change a date, rename a task, or refers loosely ("that one", "the assignment", "I done the math homework"):
+1. ALWAYS call listTasks first.
+2. Match the best task using title keywords, category, due date, priority, status (prefer pending tasks), and recent conversation context.
+3. If one task clearly matches, call updateTask with that taskId and the changes (often status: completed).
+4. If several tasks could match, ask one short clarifying question and list the candidates by title and due date.
+5. If nothing matches, say so and offer to list tasks.
 
-Do not ask unnecessary clarifying questions if the request already contains enough information to create the task.
+Do not ask unnecessary questions when creating a task if the message already has enough detail.
 
-Today's date should be used to interpret relative dates like "tomorrow" or "next Friday".
+Use today's date to interpret relative dates like "tomorrow" or "next Friday".
 
-Always confirm what you did in friendly plain English.`;
+Never show tool calls, XML tags, JSON, or internal function syntax to the user. Use action group tools silently, then reply in warm plain English.
+
+Always confirm what you changed in warm, concise plain English.`;
 
 export class AgentStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -135,7 +144,7 @@ export class AgentStack extends cdk.Stack {
       },
     });
 
-    tasksTable.grantReadData(proxyFunction);
+    tasksTable.grantReadWriteData(proxyFunction);
 
     proxyFunction.addToRolePolicy(
       new iam.PolicyStatement({
@@ -154,7 +163,7 @@ export class AgentStack extends cdk.Stack {
       description: "API for Bedrock Agent task tracker",
       defaultCorsPreflightOptions: {
         allowOrigins: apigateway.Cors.ALL_ORIGINS,
-        allowMethods: ["GET", "POST", "OPTIONS"],
+        allowMethods: ["GET", "POST", "PATCH", "OPTIONS"],
         allowHeaders: ["Content-Type"],
       },
     });
@@ -164,8 +173,15 @@ export class AgentStack extends cdk.Stack {
       new apigateway.LambdaIntegration(proxyFunction)
     );
 
-    api.root.addResource("tasks").addMethod(
+    const tasksResource = api.root.addResource("tasks");
+    tasksResource.addMethod(
       "GET",
+      new apigateway.LambdaIntegration(proxyFunction)
+    );
+
+    const taskResource = tasksResource.addResource("{taskId}");
+    taskResource.addMethod(
+      "PATCH",
       new apigateway.LambdaIntegration(proxyFunction)
     );
 

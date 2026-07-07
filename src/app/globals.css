@@ -1,26 +1,88 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --sb-bg: #0a0f16;
+  --sb-bg-elevated: rgba(12, 20, 32, 0.92);
+  --sb-bg-card: rgba(16, 26, 40, 0.78);
+  --sb-cyan: #40b6ff;
+  --sb-cyan-bright: #5ec4ff;
+  --sb-cyan-dim: rgba(64, 182, 255, 0.12);
+  --sb-border: rgba(64, 182, 255, 0.22);
+  --sb-border-strong: rgba(64, 182, 255, 0.45);
+  --sb-text: #eef4fa;
+  --sb-text-muted: #8ba3b8;
+  --background: var(--sb-bg);
+  --foreground: var(--sb-text);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-sb-cyan: var(--sb-cyan);
+  --color-sb-cyan-bright: var(--sb-cyan-bright);
+  --color-sb-muted: var(--sb-text-muted);
+  --font-sans: var(--font-display), system-ui, sans-serif;
+  --font-mono: var(--font-ember-mono), ui-monospace, monospace;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--sb-bg);
+  background-image:
+    linear-gradient(rgba(64, 182, 255, 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(64, 182, 255, 0.07) 1px, transparent 1px);
+  background-size: 48px 48px;
+  color: var(--sb-text);
+  font-family: var(--font-display), system-ui, sans-serif;
+}
+
+.sb-label {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--sb-cyan);
+}
+
+.sb-panel {
+  border: 1px solid var(--sb-border);
+  background: var(--sb-bg-card);
+  backdrop-filter: blur(12px);
+}
+
+.sb-btn-primary {
+  background: var(--sb-cyan);
+  color: #071018;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.sb-btn-primary:hover:not(:disabled) {
+  background: var(--sb-cyan-bright);
+}
+
+.sb-btn-outline {
+  border: 1px solid var(--sb-border-strong);
+  color: var(--sb-cyan);
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.sb-btn-outline:hover:not(:disabled) {
+  background: var(--sb-cyan-dim);
+  border-color: var(--sb-cyan);
+}
+
+.sb-stat-card {
+  border: 1px solid var(--sb-border);
+  background: var(--sb-bg-elevated);
+  backdrop-filter: blur(8px);
 }

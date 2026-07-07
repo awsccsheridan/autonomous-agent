@@ -88,6 +88,9 @@ export async function handler(event) {
       const task = await updateTask(taskId, {
         status: body.status,
         priority: body.priority,
+        title: body.title,
+        dueDate: body.dueDate,
+        category: body.category,
       });
 
       if (!task) {

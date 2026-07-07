@@ -3,12 +3,12 @@
   "info": {
     "title": "Task Management API",
     "version": "1.0.0",
-    "description": "API for managing student tasks in DynamoDB"
+    "description": "API for managing tasks in DynamoDB. Each task has taskId, title, dueDate, category, priority, and status."
   },
   "paths": {
     "/tasks": {
       "post": {
-        "description": "Create a new task with structured details extracted from the user's request",
+        "description": "Create a new task with structured details extracted from the user's natural language request",
         "operationId": "createTask",
         "requestBody": {
           "required": true,
@@ -57,11 +57,11 @@
         }
       },
       "get": {
-        "description": "List all tasks stored in the database",
+        "description": "List all tasks. Always call this before updateTask when the user refers to a task vaguely (e.g. 'I finished that', 'mark the homework done', 'the one due Friday'). Use taskId, title, category, dueDate, and status to identify the right task.",
         "operationId": "listTasks",
         "responses": {
           "200": {
-            "description": "List of tasks",
+            "description": "List of tasks with taskId for each item",
             "content": {
               "application/json": {
                 "schema": {
@@ -75,7 +75,7 @@
     },
     "/tasks/{taskId}": {
       "patch": {
-        "description": "Update a task's status or priority",
+        "description": "Update an existing task by taskId. Use after listTasks to resolve which task the user means. Supports marking complete, changing priority, renaming, rescheduling, or recategorizing.",
         "operationId": "updateTask",
         "parameters": [
           {
@@ -85,7 +85,7 @@
             "schema": {
               "type": "string"
             },
-            "description": "The unique ID of the task to update"
+            "description": "The unique taskId from listTasks"
           }
         ],
         "requestBody": {
@@ -97,11 +97,23 @@
                 "properties": {
                   "status": {
                     "type": "string",
-                    "description": "Task status: pending or completed"
+                    "description": "pending or completed"
                   },
                   "priority": {
                     "type": "string",
-                    "description": "Task priority: low, medium, or high"
+                    "description": "low, medium, or high"
+                  },
+                  "title": {
+                    "type": "string",
+                    "description": "Updated task title"
+                  },
+                  "dueDate": {
+                    "type": "string",
+                    "description": "Updated due date in YYYY-MM-DD format"
+                  },
+                  "category": {
+                    "type": "string",
+                    "description": "Updated category or course name"
                   }
                 }
               }

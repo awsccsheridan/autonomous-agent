@@ -15,13 +15,15 @@ Next.js Frontend
 ↓
 API Gateway
 ↓
-AWS Lambda
+Proxy Lambda (InvokeAgent)
 ↓
-Amazon Bedrock Nova Model
+Amazon Bedrock Agent (Nova)
 ↓
-AI extracts task details
+Agent chooses action group tools
 ↓
-Lambda stores task in DynamoDB
+Action Group Lambda
+↓
+DynamoDB
 ↓
 Frontend displays task dashboard
 ```
@@ -63,7 +65,8 @@ Example extracted task:
 
 ## AWS Services Used
 
-- **Amazon Bedrock**: extracts task details from natural language
+- **Amazon Bedrock Agents**: orchestrates reasoning and tool use
+- **Amazon Bedrock (Nova Lite)**: foundation model for the agent
 - **AWS Lambda**: backend logic
 - **Amazon API Gateway**: public API endpoint
 - **Amazon DynamoDB**: task storage
@@ -94,7 +97,11 @@ autonomous-agent/
     ├── lib/
     │   └── agent-stack.ts
     ├── lambda/
-    │   └── index.ts
+    │   ├── action-group.ts
+    │   ├── proxy.ts
+    │   └── tasks-db.ts
+    ├── schemas/
+    │   └── tasks-api.json
     ├── cdk.json
     ├── package.json
     └── tsconfig.json
@@ -163,7 +170,7 @@ Before deploying/testing the AI feature:
 3. Make sure the region is `us-east-1`.
 4. Open **Model access**.
 5. Click **Manage model access**.
-6. Enable Amazon Nova model access.
+6. Enable Amazon Nova model access (including Nova Lite for Bedrock Agents).
 7. Save changes.
 
 The model may appear as:
@@ -261,11 +268,15 @@ Type:
 y
 ```
 
-After deployment, copy the API output:
+After deployment, copy these outputs:
 
 ```text
 AutonomousAgentStack.ApiUrl = https://example.execute-api.us-east-1.amazonaws.com/prod/
+AutonomousAgentStack.AgentId = XXXXXXXXXX
+AutonomousAgentStack.AgentAliasId = TSTALIASID
 ```
+
+The first deploy may take a few extra minutes while the Bedrock Agent is created and prepared.
 
 ---
 

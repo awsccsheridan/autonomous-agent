@@ -1,0 +1,138 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Task Management API",
+    "version": "1.0.0",
+    "description": "API for managing tasks in DynamoDB. Each task has taskId, title, dueDate, category, priority, and status."
+  },
+  "paths": {
+    "/tasks": {
+      "post": {
+        "description": "Create a new task with structured details extracted from the user's natural language request",
+        "operationId": "createTask",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "description": "Short clear task title"
+                  },
+                  "dueDate": {
+                    "type": "string",
+                    "description": "Due date in YYYY-MM-DD format, or unknown if not specified"
+                  },
+                  "category": {
+                    "type": "string",
+                    "description": "Course, subject, or general"
+                  },
+                  "priority": {
+                    "type": "string",
+                    "description": "Task priority: low, medium, or high"
+                  },
+                  "originalRequest": {
+                    "type": "string",
+                    "description": "The user's original natural language request"
+                  }
+                },
+                "required": ["title"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Task created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "description": "List all tasks. Always call this before updateTask when the user refers to a task vaguely (e.g. 'I finished that', 'mark the homework done', 'the one due Friday'). Use taskId, title, category, dueDate, and status to identify the right task.",
+        "operationId": "listTasks",
+        "responses": {
+          "200": {
+            "description": "List of tasks with taskId for each item",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/tasks/{taskId}": {
+      "patch": {
+        "description": "Update an existing task by taskId. Use after listTasks to resolve which task the user means. Supports marking complete, changing priority, renaming, rescheduling, or recategorizing.",
+        "operationId": "updateTask",
+        "parameters": [
+          {
+            "name": "taskId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The unique taskId from listTasks"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "description": "pending or completed"
+                  },
+                  "priority": {
+                    "type": "string",
+                    "description": "low, medium, or high"
+                  },
+                  "title": {
+                    "type": "string",
+                    "description": "Updated task title"
+                  },
+                  "dueDate": {
+                    "type": "string",
+                    "description": "Updated due date in YYYY-MM-DD format"
+                  },
+                  "category": {
+                    "type": "string",
+                    "description": "Updated category or course name"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Task updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

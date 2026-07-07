@@ -1,0 +1,126 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Task Management API",
+    "version": "1.0.0",
+    "description": "API for managing student tasks in DynamoDB"
+  },
+  "paths": {
+    "/tasks": {
+      "post": {
+        "description": "Create a new task with structured details extracted from the user's request",
+        "operationId": "createTask",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "description": "Short clear task title"
+                  },
+                  "dueDate": {
+                    "type": "string",
+                    "description": "Due date in YYYY-MM-DD format, or unknown if not specified"
+                  },
+                  "category": {
+                    "type": "string",
+                    "description": "Course, subject, or general"
+                  },
+                  "priority": {
+                    "type": "string",
+                    "description": "Task priority: low, medium, or high"
+                  },
+                  "originalRequest": {
+                    "type": "string",
+                    "description": "The user's original natural language request"
+                  }
+                },
+                "required": ["title"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Task created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "description": "List all tasks stored in the database",
+        "operationId": "listTasks",
+        "responses": {
+          "200": {
+            "description": "List of tasks",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/tasks/{taskId}": {
+      "patch": {
+        "description": "Update a task's status or priority",
+        "operationId": "updateTask",
+        "parameters": [
+          {
+            "name": "taskId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The unique ID of the task to update"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "description": "Task status: pending or completed"
+                  },
+                  "priority": {
+                    "type": "string",
+                    "description": "Task priority: low, medium, or high"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Task updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

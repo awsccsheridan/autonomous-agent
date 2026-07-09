@@ -6,9 +6,34 @@ The app lets a user type a task in plain English. The AI agent extracts structur
 
 ---
 
+## Table of Contents
+
+- [What You Will Build](#what-you-will-build)
+- [Tech Stack](#tech-stack)
+- [AWS Services Used](#aws-services-used)
+- [Repository Structure](#repository-structure)
+- [Cost Awareness](#cost-awareness)
+- [Prerequisites](#prerequisites)
+- [Create an AWS Account](#create-an-aws-account)
+- [Create an IAM User and Sign In With aws login](#create-an-iam-user-and-sign-in-with-aws-login)
+- [Important Region](#important-region)
+- [Enable Bedrock Model Access](#enable-bedrock-model-access)
+- [Fork the Repository](#fork-the-repository)
+- [Clone the Repository](#clone-the-repository)
+- [Install Frontend Dependencies](#install-frontend-dependencies)
+- [Run Frontend Locally](#run-frontend-locally)
+- [Deploy Backend](#deploy-backend)
+- [Connect Frontend to Backend](#connect-frontend-to-backend)
+- [Deploy Frontend With AWS Amplify](#deploy-frontend-with-aws-amplify)
+- [Common Issues and Fixes](#common-issues-and-fixes)
+- [Destroy AWS Resources](#destroy-aws-resources)
+- [Final Test Prompts](#final-test-prompts)
+
+---
+
 ## What You Will Build
 
-```text
+```
 User
 ↓
 Next.js Frontend
@@ -30,13 +55,13 @@ Frontend displays task dashboard
 
 Example user input:
 
-```text
+```
 Add assignment due on June 25 for Digital Principles
 ```
 
 Example extracted task:
 
-```json
+```
 {
   "title": "Digital Principles assignment",
   "dueDate": "2026-06-25",
@@ -78,7 +103,7 @@ Example extracted task:
 
 ## Repository Structure
 
-```text
+```
 autonomous-agent/
 ├── src/
 │   └── app/
@@ -107,23 +132,58 @@ autonomous-agent/
     └── tsconfig.json
 ```
 
+`.env.example` is a template for the environment variable the frontend needs (`NEXT_PUBLIC_API_URL`). You will copy it to `.env.local` later and fill in your real API URL — never commit `.env.local`.
+
+---
+
+## Cost Awareness
+
+This workshop is not fully covered by the AWS Free Tier. Expected charges are small (typically well under $1–2 USD per student for a single workshop session), but you should know where the cost comes from:
+
+- **Amazon Bedrock (Nova Lite)**: charged per token, per request
+- **AWS Lambda / API Gateway / DynamoDB**: Free Tier eligible for new accounts, small usage
+- **AWS Amplify hosting**: Free Tier eligible for low traffic
+- **CloudWatch Logs**: minor storage cost
+
+Before starting, set a **Billing budget alert** so you get an email if spend passes a threshold:
+[https://console.aws.amazon.com/billing/home#/budgets](https://console.aws.amazon.com/billing/home#/budgets)
+
+Always run [`cdk destroy`](#destroy-aws-resources) at the end of the workshop.
+
 ---
 
 ## Prerequisites
 
-Install before starting:
+Install all of the following **before** the workshop starts.
 
-- Node.js LTS
-- Git
-- Visual Studio Code
-- AWS CLI
-- AWS CDK
-- GitHub account
-- AWS account
+| Tool | Minimum Version | Download / Install Link |
+|---|---|---|
+| Node.js | **20.9.0 or higher** (Next.js 16 requires this — Node 18 will fail) | [https://nodejs.org/en/download](https://nodejs.org/en/download) |
+| Git | any recent version | [https://git-scm.com/downloads](https://git-scm.com/downloads) |
+| Visual Studio Code | any recent version | [https://code.visualstudio.com/download](https://code.visualstudio.com/download) |
+| AWS CLI v2 | **2.32.0 or higher** (needed for the `aws login` command) | [https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html) |
+| AWS CDK | v2 | installed via npm, see below |
+| GitHub account | — | [https://github.com/join](https://github.com/join) |
+| AWS account | — | see [Create an AWS Account](#create-an-aws-account) |
 
-Check installations:
+**Tip:** if you already have Node.js installed but aren't sure of the version, or need to run multiple versions, use `nvm` (Node Version Manager) instead of reinstalling:
+- macOS/Linux: [https://github.com/nvm-sh/nvm](https://github.com/nvm-sh/nvm)
+- Windows: [https://github.com/coreybutler/nvm-windows](https://github.com/coreybutler/nvm-windows)
 
-```bash
+```
+nvm install 22
+nvm use 22
+```
+
+Install the AWS CDK CLI globally:
+
+```
+npm install -g aws-cdk
+```
+
+Check all installations:
+
+```
 node -v
 npm -v
 git --version
@@ -131,11 +191,66 @@ aws --version
 cdk --version
 ```
 
-If `cdk --version` does not work, use:
+`node -v` must print **v20.9.0 or higher** (v22.x LTS is a safe default). If `cdk --version` does not work even after installing it globally, use:
 
-```bash
+```
 npx cdk --version
 ```
+
+---
+
+## Create an AWS Account
+
+If you don't already have an AWS account:
+
+1. Go to [https://aws.amazon.com/free/](https://aws.amazon.com/free/) and select **Create an AWS Account**.
+2. Follow the signup steps (email, password, billing card required — you will not be charged unless you exceed Free Tier limits, see [Cost Awareness](#cost-awareness)).
+3. Once signed in, you land in the **root user** account. Do not use root credentials day-to-day — create an IAM user instead (next section).
+
+---
+
+## Create an IAM User and Sign In With `aws login`
+
+The AWS CLI and CDK need credentials to deploy resources on your behalf. This workshop uses the AWS CLI's `aws login` command instead of long-term access keys — it reuses your normal AWS Console sign-in (username + password) and issues short-term credentials that refresh automatically, so there are no access keys to create, copy, or accidentally leak.
+
+1. Confirm your AWS CLI version is 2.32.0 or higher (required for `aws login`):
+
+```
+aws --version
+```
+
+If it's older, reinstall the CLI from the link in [Prerequisites](#prerequisites).
+
+2. Sign in to the AWS Console as the root user (first time only) and open IAM:
+   [https://console.aws.amazon.com/iam/home#/users](https://console.aws.amazon.com/iam/home#/users)
+3. Create a new IAM user for yourself (**Users → Create user**) and check **"Provide user access to the AWS Management Console"** so the user has a console password. Set a password for yourself (or let AWS auto-generate one and note it down).
+4. Attach these managed policies to the IAM user:
+   - **AdministratorAccess** — broader than production best practice, but it avoids permission errors during a time-boxed workshop, since this stack creates IAM roles, Lambda, API Gateway, DynamoDB, and Bedrock resources.
+   - **SignInLocalDevelopmentAccess** — this is what actually allows the user to use `aws login`.
+   Full guide if you need it: [https://docs.aws.amazon.com/IAM/latest/UserGuide/id_users_create.html](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_users_create.html)
+5. Sign out of the root user in your browser, then sign back in to the AWS Console as your new IAM user (you'll need the account ID or alias, your IAM username, and the password from step 3).
+6. In your terminal, run:
+
+```
+aws login
+```
+
+7. If prompted, set your default region to `us-east-1`.
+8. This opens your default browser to the AWS sign-in page. If you're already signed in there as your IAM user, just confirm the account/role. Otherwise, sign in with your IAM user's username and password.
+9. Back in the terminal, you should see a message confirming you're logged in. Verify with:
+
+```
+aws sts get-caller-identity
+```
+
+You should see your account ID and IAM user ARN printed back, not an error.
+
+A few things worth knowing:
+
+- Credentials from `aws login` last up to 12 hours and refresh automatically while active — if they expire, just run `aws login` again.
+- Working on a machine with no browser (e.g., a remote box or Cloud Shell)? Use `aws login --remote` instead, which gives you a URL to open on any device.
+- To sign out at any time: `aws logout`.
+- Using multiple AWS accounts? `aws login --profile <name>` sets up a named profile you can pass to later commands with `--profile <name>`.
 
 ---
 
@@ -143,19 +258,19 @@ npx cdk --version
 
 Use this AWS region for the workshop:
 
-```text
+```
 us-east-1
 ```
 
 For Mac/Linux:
 
-```bash
+```
 export AWS_REGION=us-east-1
 ```
 
 For Windows PowerShell:
 
-```powershell
+```
 $env:AWS_REGION="us-east-1"
 ```
 
@@ -178,12 +293,24 @@ The model may appear as:
 - Amazon Nova Lite
 - Amazon Nova 2 Lite
 
+**Note:** on brand-new AWS accounts, model access can take a few minutes (occasionally longer) to move from "In Progress" to "Access granted." If your agent deploy or test call fails right after enabling access, wait a few minutes and retry before assuming something is broken.
+
+---
+
+## Fork the Repository
+
+Do this **before** cloning. The AWS Amplify step later needs push/GitHub-App access to the repo it deploys from — you won't have that on the original repo, only on your own copy.
+
+1. Go to [https://github.com/awsccsheridan/autonomous-agent](https://github.com/awsccsheridan/autonomous-agent).
+2. Click **Fork** (top right) and fork it into your own GitHub account.
+3. Use **your fork's URL** (`https://github.com/<your-username>/autonomous-agent.git`) in every step below, not the original.
+
 ---
 
 ## Clone the Repository
 
-```bash
-git clone https://github.com/awsccsheridan/autonomous-agent.git
+```
+git clone https://github.com/<your-username>/autonomous-agent.git
 cd autonomous-agent
 code .
 ```
@@ -196,7 +323,7 @@ If `code .` does not work, open the folder manually in VS Code.
 
 From the project root:
 
-```bash
+```
 npm install
 ```
 
@@ -204,13 +331,13 @@ npm install
 
 ## Run Frontend Locally
 
-```bash
+```
 npm run dev
 ```
 
 Open:
 
-```text
+```
 http://localhost:3000
 ```
 
@@ -218,7 +345,7 @@ The frontend may load before backend deployment, but task creation will only wor
 
 Stop the frontend with:
 
-```text
+```
 Ctrl + C
 ```
 
@@ -228,49 +355,49 @@ Ctrl + C
 
 Go to the backend folder:
 
-```bash
+```
 cd backend
 ```
 
 Install backend dependencies:
 
-```bash
+```
 npm install
 ```
 
 Install esbuild:
 
-```bash
+```
 npm install --save-dev esbuild
 ```
 
-Bootstrap CDK:
+Bootstrap CDK (only needed once per AWS account/region):
 
-```bash
+```
 npx cdk bootstrap
 ```
 
 Deploy:
 
-```bash
+```
 npx cdk deploy
 ```
 
 When asked:
 
-```text
+```
 Do you wish to deploy these changes?
 ```
 
 Type:
 
-```text
+```
 y
 ```
 
 After deployment, copy these outputs:
 
-```text
+```
 AutonomousAgentStack.ApiUrl = https://example.execute-api.us-east-1.amazonaws.com/prod/
 AutonomousAgentStack.AgentId = XXXXXXXXXX
 AutonomousAgentStack.AgentAliasId = TSTALIASID
@@ -284,19 +411,21 @@ The first deploy may take a few extra minutes while the Bedrock Agent is created
 
 Go back to the project root:
 
-```bash
+```
 cd ..
 ```
 
-Create a file:
+Copy the example environment file:
 
-```text
-.env.local
+```
+cp .env.example .env.local
 ```
 
-Add:
+(Windows PowerShell: `copy .env.example .env.local`)
 
-```env
+Open `.env.local` and set:
+
+```
 NEXT_PUBLIC_API_URL=https://your-api-url.execute-api.us-east-1.amazonaws.com/prod
 ```
 
@@ -309,25 +438,25 @@ Important:
 
 Example:
 
-```env
+```
 NEXT_PUBLIC_API_URL=https://abc123.execute-api.us-east-1.amazonaws.com/prod
 ```
 
 Restart the frontend:
 
-```bash
+```
 npm run dev
 ```
 
 Open:
 
-```text
+```
 http://localhost:3000
 ```
 
 Test with:
 
-```text
+```
 Add assignment due on June 25 for Digital Principles
 ```
 
@@ -339,40 +468,41 @@ Add assignment due on June 25 for Digital Principles
 2. Choose region `us-east-1`.
 3. Click **Create new app**.
 4. Choose **Host web app**.
-5. Choose **GitHub**.
+5. Choose **GitHub**, and authorize the AWS Amplify GitHub App if prompted (this is what requires you to be deploying from **your own fork**).
 6. Select repository:
 
-```text
-awsccsheridan/autonomous-agent
+```
+<your-username>/autonomous-agent
 ```
 
 7. Select branch:
 
-```text
+```
 main
 ```
 
 8. Use build settings:
 
-```text
+```
 Install command: npm install
 Build command: npm run build
 Output directory: .next
 ```
 
-9. Add environment variable:
+9. Under **Advanced settings**, set the build image Node.js version to **20 or later** (Amplify's default build image may still default to an older Node version, which will fail the build with this codebase — see [Common Issues](#common-issues-and-fixes)).
+10. Add environment variable:
 
-```text
+```
 NEXT_PUBLIC_API_URL
 ```
 
 Value:
 
-```text
+```
 https://your-api-url.execute-api.us-east-1.amazonaws.com/prod
 ```
 
-10. Click **Save and deploy**.
+11. Click **Save and deploy**.
 
 Amplify will provide a public website URL after deployment.
 
@@ -382,59 +512,73 @@ Amplify will provide a public website URL after deployment.
 
 ### `aws command not found`
 
-Restart terminal or reinstall AWS CLI.
+Restart terminal or reinstall AWS CLI. Check:
 
-Check:
-
-```bash
+```
 aws --version
 ```
 
-### AWS credentials error
+### AWS credentials error / session expired
 
-Run:
+`aws login` credentials expire after up to 12 hours. Just sign in again:
 
-```bash
-aws configure
+```
+aws login
 ```
 
 Then check:
 
-```bash
+```
 aws sts get-caller-identity
 ```
+
+If `aws login` isn't recognized at all, your AWS CLI is older than 2.32.0 — reinstall from the link in [Prerequisites](#prerequisites).
 
 ### Wrong AWS region
 
 Use:
 
-```text
+```
 us-east-1
 ```
 
 ### Bedrock access denied
 
-Enable Amazon Nova model access in Amazon Bedrock.
+Enable Amazon Nova model access in Amazon Bedrock (see [Enable Bedrock Model Access](#enable-bedrock-model-access)). If you just enabled it, wait a few minutes for it to propagate before retrying.
 
 ### `cdk command not found`
 
 Use:
 
-```bash
+```
 npx cdk deploy
 ```
+
+Or reinstall globally:
+
+```
+npm install -g aws-cdk
+```
+
+### `npx cdk bootstrap` or `cdk deploy` fails with an access/permission error
+
+Your IAM user likely doesn't have enough permissions. Confirm the `AdministratorAccess` policy is attached to the IAM user you signed in as (see [Create an IAM User](#create-an-iam-user-and-sign-in-with-aws-login)), and that `aws sts get-caller-identity` shows the correct account/user.
+
+### `npm install` fails with `EBADENGINE` or Next.js won't start
+
+Your Node.js version is too old. This project needs **Node.js 20.9.0 or higher**. Check with `node -v`. If it's lower, install a newer version (see [Prerequisites](#prerequisites)) or switch with `nvm use 22`.
 
 ### Frontend says API URL is missing
 
 Make sure `.env.local` exists in the project root and contains:
 
-```env
+```
 NEXT_PUBLIC_API_URL=your-api-url
 ```
 
 Restart:
 
-```bash
+```
 npm run dev
 ```
 
@@ -446,11 +590,24 @@ Check:
 - API URL copied correctly
 - `.env.local` has correct value
 - frontend was restarted after editing `.env.local`
-- browser console for CORS errors
+- browser console for CORS errors (see below)
+
+### CORS error in the browser console
+
+If the console shows something like `has been blocked by CORS policy`:
+
+1. Confirm the API Gateway stage URL in `.env.local` exactly matches the `ApiUrl` output from `cdk deploy` (including `/prod`, no trailing slash).
+2. Confirm you're calling the deployed API, not `localhost`.
+3. If it still fails, redeploy the backend (`npx cdk deploy` from the `backend` folder) — CORS settings are defined in the CDK stack and only apply after a successful deploy.
+
+### Amplify build fails (Node version / engine error)
+
+Set the Node.js version in Amplify's build settings to 20 or later, since Amplify's default build image may run an older Node version than your local machine. This is set under **App settings → Build settings** or during initial app creation under **Advanced settings**.
 
 ### GitHub password does not work
 
-Use a GitHub Personal Access Token instead of your normal GitHub password.
+Use a GitHub Personal Access Token instead of your normal GitHub password. Create one at:
+[https://github.com/settings/tokens](https://github.com/settings/tokens)
 
 ---
 
@@ -460,19 +617,20 @@ To avoid charges after the workshop, destroy the backend stack.
 
 From the backend folder:
 
-```bash
+```
+cd backend
 npx cdk destroy
 ```
 
 When asked:
 
-```text
+```
 Are you sure you want to delete?
 ```
 
 Type:
 
-```text
+```
 y
 ```
 
@@ -484,26 +642,25 @@ This removes CDK-created resources such as:
 - IAM roles created by CDK
 - CloudFormation stack resources
 
-Also check manually:
+Also check manually and delete if no longer needed:
 
-- CloudWatch log groups
-- Amplify app
-- IAM access keys if no longer needed
+- CloudWatch log groups (CDK sometimes leaves these behind)
+- The Amplify app (Amplify Console → your app → **Delete app**)
+- IAM access keys, if this account won't be reused
+
+Double-check the Billing dashboard a day later to confirm no unexpected charges:
+[https://console.aws.amazon.com/billing/home](https://console.aws.amazon.com/billing/home)
 
 ---
 
 ## Final Test Prompts
 
-```text
+```
 Add assignment due on June 25 for Digital Principles
 ```
 
-```text
+```
 Create a high priority task to finish AWS workshop slides tomorrow
 ```
 
 If tasks appear in the dashboard, the project is working.
-
----
-
-

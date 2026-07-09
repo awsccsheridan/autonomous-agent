@@ -1,6 +1,6 @@
 # Build Your First Autonomous AI Agent on AWS
 
-A beginner-friendly AWS workshop project where students build a serverless AI-powered task tracker using Next.js, AWS Lambda, API Gateway, DynamoDB, Amazon Bedrock, AWS CDK, and AWS Amplify.
+A beginner-friendly AWS workshop project where students build a serverless AI-powered task tracker using **Amazon Bedrock Agents**, **AWS Lambda**, **API Gateway**, **DynamoDB**, **AWS CDK**, and **AWS Amplify**.
 
 The app lets a user type a task in plain English. The AI agent extracts structured task details, stores the task in DynamoDB, and displays it in a dashboard.
 
@@ -38,19 +38,19 @@ User
 ↓
 Next.js Frontend
 ↓
-API Gateway
+Amazon API Gateway
 ↓
-Proxy Lambda (InvokeAgent)
+Proxy Lambda
 ↓
-Amazon Bedrock Agent (Nova)
+Amazon Bedrock Agent
 ↓
-Agent chooses action group tools
+Action Group Tool
 ↓
 Action Group Lambda
 ↓
-DynamoDB
+Amazon DynamoDB
 ↓
-Frontend displays task dashboard
+Frontend Task Dashboard
 ```
 
 Example user input:
@@ -59,45 +59,136 @@ Example user input:
 Add assignment due on June 25 for Digital Principles
 ```
 
-Example extracted task:
+Example task stored in DynamoDB:
 
 ```
 {
+  "taskId": "generated-id",
   "title": "Digital Principles assignment",
   "dueDate": "2026-06-25",
   "category": "Digital Principles",
   "priority": "medium",
-  "status": "pending"
+  "status": "pending",
+  "originalRequest": "Add assignment due on June 25 for Digital Principles"
 }
 ```
 
 ---
 
+## Why This Project Uses Bedrock Agents
+
+The goal of this workshop is not just to call a model and get text back.
+
+The goal is to show an **agentic workflow**:
+
+```text
+Understand the request → choose a tool → perform an action → return the result
+```
+
+Amazon Bedrock Agent is used as the reasoning layer. It decides whether the user wants to:
+
+- create a task
+- list tasks
+- update a task
+- mark a task as completed
+
+The agent uses an **Action Group** to call backend tools. The actual task operations are handled by a Lambda function and saved in DynamoDB.
+
+---
+
+## Current UI Flow
+
+The app is split into two pages to keep the experience clear and less congested.
+
+### Page 1: Overview
+
+The overview page includes:
+
+- welcome message
+- motivation quote
+- today’s summary
+- circular task completion percentage
+- active/completed/total task count
+- due-today reminder
+- button to open the task agent
+
+### Page 2: AI Task Tracker
+
+The workspace page includes:
+
+- Bedrock Agent chat panel
+- quick prompts
+- live task dashboard
+- filters for active/done/all tasks
+- task status updates
+- DynamoDB-backed task list
+
+---
+
 ## Tech Stack
+
+### Frontend
 
 - Next.js
 - React
 - TypeScript
 - Tailwind CSS
+
+### Backend
+
 - AWS CDK
 - AWS Lambda
 - Amazon API Gateway
 - Amazon DynamoDB
-- Amazon Bedrock
-- AWS Amplify
+- Amazon Bedrock Agent
+- Bedrock Agent Action Group
+- OpenAPI schema for tools
+- CloudWatch Logs
+
+### Deployment
+
+- AWS CDK for backend deployment
+- AWS Amplify for frontend hosting
+- GitHub for source control
 
 ---
 
 ## AWS Services Used
 
-- **Amazon Bedrock Agents**: orchestrates reasoning and tool use
-- **Amazon Bedrock (Nova Lite)**: foundation model for the agent
-- **AWS Lambda**: backend logic
-- **Amazon API Gateway**: public API endpoint
-- **Amazon DynamoDB**: task storage
-- **AWS CDK**: infrastructure as code
-- **AWS Amplify**: frontend hosting
-- **CloudWatch**: backend logs
+### Amazon Bedrock Agent
+
+Acts as the AI agent that understands user intent and decides which backend tool to call.
+
+### Bedrock Action Group
+
+Defines the tools available to the agent using an OpenAPI schema.
+
+### AWS Lambda
+
+The project uses two Lambda areas:
+
+- **Proxy Lambda**: receives frontend requests and invokes the Bedrock Agent
+- **Action Group Lambda**: performs task operations such as create, list, and update
+
+### Amazon API Gateway
+
+Exposes a public HTTPS endpoint for the frontend.
+
+### Amazon DynamoDB
+
+Stores task records.
+
+### AWS CDK
+
+Defines and deploys the backend infrastructure.
+
+### CloudWatch
+
+Stores logs for debugging backend issues.
+
+### AWS Amplify
+
+Hosts the frontend application.
 
 ---
 
@@ -106,27 +197,47 @@ Example extracted task:
 ```
 autonomous-agent/
 ├── src/
-│   └── app/
-│       ├── page.tsx
-│       ├── layout.tsx
-│       └── globals.css
+│   ├── app/
+│   │   ├── page.tsx               # Overview page
+│   │   ├── workspace/page.tsx     # AI Task Tracker workspace
+│   │   ├── layout.tsx
+│   │   └── globals.css
+│   │
+│   ├── components/
+│   │   ├── ChatPanel.tsx
+│   │   ├── SiteHeader.tsx
+│   │   └── TaskList.tsx
+│   │
+│   ├── lib/
+│   │   └── api.ts                 # Frontend API helper functions
+│   │
+│   └── types/
+│       └── task.ts                # Task and chat types
 │
 ├── public/
-├── .env.example
-├── package.json
+├── package.json                   # Frontend dependencies
 ├── tsconfig.json
 │
 └── backend/
     ├── bin/
-    │   └── backend.ts
+    │   └── backend.ts             # CDK app entry point
+    │
     ├── lib/
-    │   └── agent-stack.ts
-    ├── lambda/
-    │   ├── action-group.ts
-    │   ├── proxy.ts
-    │   └── tasks-db.ts
+    │   └── agent-stack.ts         # Bedrock Agent, Lambda, API Gateway, DynamoDB
+    │
     ├── schemas/
-    │   └── tasks-api.json
+    │   └── tasks-api.json         # OpenAPI schema for agent tools
+    │
+    ├── lambda/
+    │   ├── proxy/
+    │   │   ├── index.mjs          # API Gateway → Bedrock Agent proxy
+    │   │   ├── task-intent.mjs    # Low-cost intent helper/fallback
+    │   │   └── tasks-db.mjs       # DynamoDB helper functions
+    │   │
+    │   └── action-group/
+    │       ├── index.mjs          # Bedrock Action Group tool handler
+    │       └── tasks-db.mjs       # DynamoDB helper functions
+    │
     ├── cdk.json
     ├── package.json
     └── tsconfig.json
@@ -254,9 +365,9 @@ A few things worth knowing:
 
 ---
 
-## Important Region
+## Important AWS Region
 
-Use this AWS region for the workshop:
+Use this region for the workshop:
 
 ```
 us-east-1
@@ -278,20 +389,24 @@ $env:AWS_REGION="us-east-1"
 
 ## Enable Bedrock Model Access
 
-Before deploying/testing the AI feature:
+Before testing the agent, enable Amazon Nova model access in Bedrock.
+
+Steps:
 
 1. Open AWS Console.
-2. Go to Amazon Bedrock.
+2. Search for **Amazon Bedrock**.
 3. Make sure the region is `us-east-1`.
-4. Open **Model access**.
+4. Go to **Model access**.
 5. Click **Manage model access**.
-6. Enable Amazon Nova model access (including Nova Lite for Bedrock Agents).
+6. Enable the Amazon Nova model used in the workshop.
 7. Save changes.
 
-The model may appear as:
+Depending on the account, the model may appear as:
 
 - Amazon Nova Lite
 - Amazon Nova 2 Lite
+
+The project uses Nova 2 Lite to keep workshop cost lower.
 
 **Note:** on brand-new AWS accounts, model access can take a few minutes (occasionally longer) to move from "In Progress" to "Access granted." If your agent deploy or test call fails right after enabling access, wait a few minutes and retry before assuming something is broken.
 
@@ -319,7 +434,7 @@ If `code .` does not work, open the folder manually in VS Code.
 
 ---
 
-## Install Frontend Dependencies
+## Install and Run the Frontend Locally
 
 From the project root:
 
@@ -341,7 +456,9 @@ Open:
 http://localhost:3000
 ```
 
-The frontend may load before backend deployment, but task creation will only work after the backend API is deployed and connected.
+The overview page should open.
+
+The AI task features will work only after the backend is deployed and the frontend has `NEXT_PUBLIC_API_URL` configured.
 
 Stop the frontend with:
 
@@ -351,7 +468,7 @@ Ctrl + C
 
 ---
 
-## Deploy Backend
+## Deploy the Backend
 
 Go to the backend folder:
 
@@ -365,8 +482,22 @@ Install backend dependencies:
 npm install
 ```
 
-Install esbuild:
+Install dependencies for the Lambda folders:
 
+```bash
+npm run package:lambdas
+```
+
+Set AWS region:
+
+```bash
+export AWS_REGION=us-east-1
+```
+
+For Windows PowerShell:
+
+```powershell
+$env:AWS_REGION="us-east-1"
 ```
 npm install --save-dev esbuild
 ```
@@ -395,15 +526,15 @@ Type:
 y
 ```
 
-After deployment, copy these outputs:
+After deployment, copy the API output:
 
+```text
+AutonomousAgentStack.ApiUrl = https://xxxxx.execute-api.us-east-1.amazonaws.com/prod/
 ```
 AutonomousAgentStack.ApiUrl = https://example.execute-api.us-east-1.amazonaws.com/prod/
 AutonomousAgentStack.AgentId = XXXXXXXXXX
 AutonomousAgentStack.AgentAliasId = TSTALIASID
 ```
-
-The first deploy may take a few extra minutes while the Bedrock Agent is created and prepared.
 
 ---
 
@@ -442,7 +573,7 @@ Example:
 NEXT_PUBLIC_API_URL=https://abc123.execute-api.us-east-1.amazonaws.com/prod
 ```
 
-Restart the frontend:
+Restart frontend:
 
 ```
 npm run dev
@@ -454,17 +585,72 @@ Open:
 http://localhost:3000
 ```
 
-Test with:
+Then open the workspace:
 
 ```
-Add assignment due on June 25 for Digital Principles
+http://localhost:3000/workspace
 ```
+
+---
+
+## Test Prompts
+
+Try:
+
+```text
+Add a high priority task to finish README by Friday
+```
+
+```text
+What is on my list?
+```
+
+```text
+I finished the README task
+```
+
+Expected behavior:
+
+- the Bedrock Agent replies in the chat
+- tasks appear in the dashboard
+- completed tasks can be marked done
+- task data is stored in DynamoDB
+
+---
+
+## Push Code to GitHub
+
+Before pushing, run:
+
+```bash
+git status
+```
+
+Make sure these folders are not being committed:
+
+```text
+node_modules
+.next
+backend/cdk.out
+backend/lambda/proxy/node_modules
+backend/lambda/action-group/node_modules
+```
+
+Then push:
+
+```bash
+git add .
+git commit -m "Update Bedrock Agent task tracker UI and docs"
+git push origin main
+```
+
+If GitHub asks for a password in terminal, use a GitHub Personal Access Token instead of your normal password.
 
 ---
 
 ## Deploy Frontend With AWS Amplify
 
-1. Open AWS Amplify in the AWS Console.
+1. Open AWS Amplify in AWS Console.
 2. Choose region `us-east-1`.
 3. Click **Create new app**.
 4. Choose **Host web app**.
@@ -508,6 +694,29 @@ Amplify will provide a public website URL after deployment.
 
 ---
 
+## IAM / Least Privilege Note
+
+For this workshop, the AWS user should only have permissions related to the services being used.
+
+Required service areas:
+
+- CloudFormation
+- IAM roles and policies created by CDK
+- Lambda
+- API Gateway
+- DynamoDB
+- Amazon Bedrock
+- Amazon Bedrock Agents
+- CloudWatch Logs
+- S3/CDK bootstrap assets
+- Amplify, if deploying frontend
+
+For beginner workshops, a sandbox or team AWS account is usually easiest.
+
+If students use personal accounts, provide a tested least-privilege policy or clear cleanup instructions.
+
+---
+
 ## Common Issues and Fixes
 
 ### `aws command not found`
@@ -546,27 +755,14 @@ us-east-1
 
 Enable Amazon Nova model access in Amazon Bedrock (see [Enable Bedrock Model Access](#enable-bedrock-model-access)). If you just enabled it, wait a few minutes for it to propagate before retrying.
 
-### `cdk command not found`
+### CDK deploy fails
 
-Use:
+Run:
 
 ```
+npm run package:lambdas
 npx cdk deploy
 ```
-
-Or reinstall globally:
-
-```
-npm install -g aws-cdk
-```
-
-### `npx cdk bootstrap` or `cdk deploy` fails with an access/permission error
-
-Your IAM user likely doesn't have enough permissions. Confirm the `AdministratorAccess` policy is attached to the IAM user you signed in as (see [Create an IAM User](#create-an-iam-user-and-sign-in-with-aws-login)), and that `aws sts get-caller-identity` shows the correct account/user.
-
-### `npm install` fails with `EBADENGINE` or Next.js won't start
-
-Your Node.js version is too old. This project needs **Node.js 20.9.0 or higher**. Check with `node -v`. If it's lower, install a newer version (see [Prerequisites](#prerequisites)) or switch with `nvm use 22`.
 
 ### Frontend says API URL is missing
 
@@ -590,7 +786,8 @@ Check:
 - API URL copied correctly
 - `.env.local` has correct value
 - frontend was restarted after editing `.env.local`
-- browser console for CORS errors (see below)
+- browser console for CORS errors
+- CloudWatch logs for Lambda errors
 
 ### CORS error in the browser console
 
@@ -603,6 +800,8 @@ If the console shows something like `has been blocked by CORS policy`:
 ### Amplify build fails (Node version / engine error)
 
 Set the Node.js version in Amplify's build settings to 20 or later, since Amplify's default build image may run an older Node version than your local machine. This is set under **App settings → Build settings** or during initial app creation under **Advanced settings**.
+- browser console for CORS errors
+- CloudWatch logs for Lambda errors
 
 ### GitHub password does not work
 
@@ -637,8 +836,10 @@ y
 This removes CDK-created resources such as:
 
 - API Gateway
-- Lambda
+- Proxy Lambda
+- Action Group Lambda
 - DynamoDB table
+- Bedrock Agent resources
 - IAM roles created by CDK
 - CloudFormation stack resources
 
@@ -653,14 +854,26 @@ Double-check the Billing dashboard a day later to confirm no unexpected charges:
 
 ---
 
-## Final Test Prompts
+## Current MVP Features
 
-```
-Add assignment due on June 25 for Digital Principles
-```
+- Two-page UI: overview and AI Task Tracker workspace
+- Create tasks using plain English
+- List tasks through the agent
+- Mark tasks complete through agent/task dashboard
+- Store tasks in DynamoDB
+- Use Bedrock Agent action groups for tool calling
+- Deploy backend with AWS CDK
+- Deploy frontend with AWS Amplify
 
-```
-Create a high priority task to finish AWS workshop slides tomorrow
-```
+---
 
-If tasks appear in the dashboard, the project is working.
+## Future Improvements
+
+- Edit task title/date/priority in the UI
+- Delete tasks
+- Calendar view
+- Reminder notifications using EventBridge
+- User login with Cognito
+- Study streaks and gamification
+- Better AI suggestions for study planning
+- Export tasks to PDF or calendar

@@ -12,6 +12,7 @@ type TaskListProps = {
   onRefresh: () => void;
   updatingTaskId: string | null;
   isRefreshing: boolean;
+  completionPercent: number;
 };
 
 const PRIORITY_STYLES: Record<TaskPriority, string> = {
@@ -58,6 +59,7 @@ export function TaskList({
   onRefresh,
   updatingTaskId,
   isRefreshing,
+  completionPercent,
 }: TaskListProps) {
   const activeCount = tasks.filter((task) => task.status === "pending").length;
   const doneCount = tasks.filter((task) => task.status === "completed").length;
@@ -70,24 +72,49 @@ export function TaskList({
   ];
 
   return (
-    <section className="sb-panel flex h-full min-h-[520px] flex-col">
-      <header className="border-b border-[var(--sb-border)] px-5 py-4">
-        <div className="mb-4 flex items-start justify-between gap-3">
+    <section className="sb-panel flex h-full min-h-[620px] flex-col rounded-[2rem]">
+      <header className="border-b border-[var(--sb-border)] px-5 py-5">
+        <div className="mb-5 flex items-start justify-between gap-4">
           <div>
-            <p className="sb-label">Your list</p>
-            <h2 className="text-lg font-bold text-[var(--sb-text)]">My Tasks</h2>
-            <p className="mt-1 font-[family-name:var(--font-mono)] text-xs uppercase tracking-wider text-[var(--sb-text-muted)]">
-              {activeCount} active · {doneCount} completed
+            <p className="sb-label">DynamoDB task dashboard</p>
+            <h2 className="mt-2 text-2xl font-bold text-[var(--sb-text)]">
+              My Tasks
+            </h2>
+            <p className="mt-2 text-sm text-[var(--sb-text-muted)]">
+              Tasks created or updated by the Bedrock Agent appear here.
             </p>
           </div>
+
           <button
             type="button"
             onClick={onRefresh}
             disabled={isRefreshing}
-            className="sb-btn-outline px-3 py-1.5 disabled:opacity-50"
+            className="sb-btn-outline rounded-xl px-3 py-2 disabled:opacity-50"
           >
-            {isRefreshing ? "..." : "Refresh"}
+            {isRefreshing ? "Syncing" : "Refresh"}
           </button>
+        </div>
+
+        <div className="mb-5 rounded-2xl border border-[var(--sb-border)] bg-[var(--sb-bg-elevated)] p-4">
+          <div className="mb-2 flex items-center justify-between text-sm">
+            <span className="font-bold text-[var(--sb-text)]">
+              Completion progress
+            </span>
+            <span className="font-[family-name:var(--font-mono)] text-[var(--sb-cyan)]">
+              {completionPercent}%
+            </span>
+          </div>
+
+          <div className="h-3 overflow-hidden rounded-full bg-white/10">
+            <div
+              className="h-full rounded-full bg-[var(--sb-cyan)] transition-all duration-500"
+              style={{ width: `${completionPercent}%` }}
+            />
+          </div>
+
+          <p className="mt-2 text-xs text-[var(--sb-text-muted)]">
+            {activeCount} active · {doneCount} completed · {tasks.length} total
+          </p>
         </div>
 
         <div className="flex flex-wrap gap-2">
@@ -96,7 +123,7 @@ export function TaskList({
               key={item.id}
               type="button"
               onClick={() => onFilterChange(item.id)}
-              className={`px-3 py-1.5 font-[family-name:var(--font-mono)] text-[0.6875rem] font-bold uppercase tracking-wider transition ${
+              className={`rounded-xl px-3 py-2 font-[family-name:var(--font-mono)] text-[0.6875rem] font-bold uppercase tracking-wider transition ${
                 filter === item.id
                   ? "bg-[var(--sb-cyan)] text-[#071018]"
                   : "border border-[var(--sb-border)] text-[var(--sb-text-muted)] hover:border-[var(--sb-cyan)] hover:text-[var(--sb-cyan)]"
@@ -108,24 +135,26 @@ export function TaskList({
         </div>
       </header>
 
-      <div className="flex-1 space-y-3 overflow-y-auto px-5 py-4">
+      <div className="flex-1 space-y-3 overflow-y-auto px-5 py-5">
         {visibleTasks.length === 0 ? (
-          <div className="flex h-full min-h-[280px] flex-col items-center justify-center border border-dashed border-[var(--sb-border)] px-6 text-center">
-            <div className="flex h-12 w-12 items-center justify-center border border-[var(--sb-border-strong)] bg-[var(--sb-cyan-dim)]">
+          <div className="flex h-full min-h-[280px] flex-col items-center justify-center rounded-3xl border border-dashed border-[var(--sb-border)] px-6 text-center">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-[var(--sb-border-strong)] bg-[var(--sb-cyan-dim)]">
               <span className="font-[family-name:var(--font-mono)] text-xl text-[var(--sb-cyan)]">
-                //
+                AI
               </span>
             </div>
+
             <p className="mt-4 font-bold text-[var(--sb-text)]">
               {filter === "done"
                 ? "No completed tasks yet"
                 : filter === "active"
-                  ? "You're all caught up"
-                  : "Your list is empty"}
+                  ? "No active tasks"
+                  : "Your task list is empty"}
             </p>
+
             <p className="mt-2 max-w-xs text-sm text-[var(--sb-text-muted)]">
-              Tell the assistant to add a task, or say something like &quot;Add
-              study for midterm on Thursday&quot;
+              Ask the agent to add a task, then it will appear here after being
+              stored in DynamoDB.
             </p>
           </div>
         ) : (
@@ -136,11 +165,11 @@ export function TaskList({
             return (
               <article
                 key={task.taskId}
-                className={`sb-stat-card p-4 transition ${
+                className={`sb-stat-card rounded-3xl p-4 transition ${
                   isDone ? "opacity-70" : "hover:border-[var(--sb-border-strong)]"
                 }`}
               >
-                <div className="flex items-start gap-3">
+                <div className="flex items-start gap-4">
                   <button
                     type="button"
                     onClick={() => onToggleComplete(task)}
@@ -150,7 +179,7 @@ export function TaskList({
                         ? `Mark "${task.title}" as active`
                         : `Mark "${task.title}" as done`
                     }
-                    className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center border transition disabled:opacity-50 ${
+                    className={`mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border transition disabled:opacity-50 ${
                       isDone
                         ? "border-[var(--sb-cyan)] bg-[var(--sb-cyan)] text-[#071018]"
                         : "border-[var(--sb-border-strong)] bg-transparent hover:border-[var(--sb-cyan)]"
@@ -170,7 +199,7 @@ export function TaskList({
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <h3
-                        className={`font-bold text-[var(--sb-text)] ${
+                        className={`text-base font-bold text-[var(--sb-text)] ${
                           isDone
                             ? "text-[var(--sb-text-muted)] line-through"
                             : ""
@@ -178,18 +207,48 @@ export function TaskList({
                       >
                         {task.title}
                       </h3>
+
                       <span
-                        className={`border px-2 py-0.5 font-[family-name:var(--font-mono)] text-[10px] font-bold uppercase tracking-wide ${PRIORITY_STYLES[task.priority]}`}
+                        className={`rounded-full border px-2.5 py-1 font-[family-name:var(--font-mono)] text-[10px] font-bold uppercase tracking-wide ${PRIORITY_STYLES[task.priority]}`}
                       >
                         {task.priority}
                       </span>
                     </div>
 
-                    <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 font-[family-name:var(--font-mono)] text-[0.6875rem] uppercase tracking-wide text-[var(--sb-text-muted)]">
-                      <span>{formatDueDate(task.dueDate)}</span>
-                      <span>{task.category}</span>
-                      <span>{task.status}</span>
+                    <div className="mt-3 grid gap-2 text-sm text-[var(--sb-text-muted)] sm:grid-cols-3">
+                      <div className="rounded-2xl bg-white/5 px-3 py-2">
+                        <p className="font-[family-name:var(--font-mono)] text-[10px] uppercase tracking-wider opacity-70">
+                          Due
+                        </p>
+                        <p className="font-semibold text-[var(--sb-text)]">
+                          {formatDueDate(task.dueDate)}
+                        </p>
+                      </div>
+
+                      <div className="rounded-2xl bg-white/5 px-3 py-2">
+                        <p className="font-[family-name:var(--font-mono)] text-[10px] uppercase tracking-wider opacity-70">
+                          Category
+                        </p>
+                        <p className="font-semibold text-[var(--sb-text)]">
+                          {task.category}
+                        </p>
+                      </div>
+
+                      <div className="rounded-2xl bg-white/5 px-3 py-2">
+                        <p className="font-[family-name:var(--font-mono)] text-[10px] uppercase tracking-wider opacity-70">
+                          Status
+                        </p>
+                        <p className="font-semibold text-[var(--sb-text)]">
+                          {isUpdating ? "Updating..." : task.status}
+                        </p>
+                      </div>
                     </div>
+
+                    {task.originalRequest && (
+                      <p className="mt-3 rounded-2xl border border-[var(--sb-border)] bg-[var(--sb-bg)] px-3 py-2 text-xs leading-relaxed text-[var(--sb-text-muted)]">
+                        Original request: {task.originalRequest}
+                      </p>
+                    )}
                   </div>
                 </div>
               </article>
@@ -198,8 +257,9 @@ export function TaskList({
         )}
       </div>
 
-      <footer className="border-t border-[var(--sb-border)] px-5 py-3 font-[family-name:var(--font-mono)] text-[0.625rem] uppercase tracking-wider text-[var(--sb-text-muted)]">
-        Check tasks here or tell the agent in chat — both stay in sync
+      <footer className="border-t border-[var(--sb-border)] px-5 py-4 text-xs text-[var(--sb-text-muted)]">
+        You can update tasks by clicking the checkbox or by chatting with the
+        Bedrock Agent.
       </footer>
     </section>
   );

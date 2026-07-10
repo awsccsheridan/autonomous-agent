@@ -185,9 +185,14 @@ export default function WorkspacePage() {
   }
 
   useEffect(() => {
-    setSessionId(getOrCreateSessionId());
-    loadTasks();
-  }, [loadTasks]);
+      const activeSessionId = getOrCreateSessionId();
+
+      requestAnimationFrame(() => {
+        setSessionId(activeSessionId);
+      });
+
+      loadTasks();
+    }, [loadTasks]);
 
   return (
     <div className="relative flex h-screen flex-col overflow-hidden">

@@ -59,7 +59,7 @@ export default function Home() {
   const apiUrl = normalizeApiUrl(process.env.NEXT_PUBLIC_API_URL);
 
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(Boolean(apiUrl));
 
   const activeTasks = tasks.filter((task) => task.status === "pending");
   const completedTasks = tasks.filter((task) => task.status === "completed");
@@ -71,22 +71,24 @@ export default function Home() {
   }, [completedTasks.length, tasks.length]);
 
   useEffect(() => {
-    async function loadOverview() {
-      if (!apiUrl) return;
+    if (!apiUrl) return;
 
-      setIsLoading(true);
+    let cancelled = false;
 
-      try {
-        const nextTasks = await fetchTasks(apiUrl);
-        setTasks(nextTasks);
-      } catch {
-        setTasks([]);
-      } finally {
-        setIsLoading(false);
-      }
-    }
+    fetchTasks(apiUrl)
+      .then((nextTasks) => {
+        if (!cancelled) setTasks(nextTasks);
+      })
+      .catch(() => {
+        if (!cancelled) setTasks([]);
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
 
-    loadOverview();
+    return () => {
+      cancelled = true;
+    };
   }, [apiUrl]);
 
   return (

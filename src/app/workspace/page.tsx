@@ -48,7 +48,9 @@ export default function WorkspacePage() {
   const [input, setInput] = useState("");
   const [tasks, setTasks] = useState<Task[]>([]);
   const [filter, setFilter] = useState<TaskFilter>("active");
-  const [sessionId, setSessionId] = useState("");
+  const [sessionId, setSessionId] = useState(() =>
+    typeof window === "undefined" ? "" : getOrCreateSessionId()
+  );
   const [messages, setMessages] = useState<ChatMessage[]>([
     createMessage(
       "agent",
@@ -185,14 +187,30 @@ export default function WorkspacePage() {
   }
 
   useEffect(() => {
-      const activeSessionId = getOrCreateSessionId();
+    if (!apiUrl) return;
 
-      requestAnimationFrame(() => {
-        setSessionId(activeSessionId);
+    let cancelled = false;
+
+    fetchTasks(apiUrl)
+      .then((nextTasks) => {
+        if (!cancelled) setTasks(nextTasks);
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          const message =
+            error instanceof Error ? error.message : "Could not load tasks";
+
+          setMessages((current) => [
+            ...current,
+            createMessage("agent", `Couldn't refresh tasks: ${message}`),
+          ]);
+        }
       });
 
-      loadTasks();
-    }, [loadTasks]);
+    return () => {
+      cancelled = true;
+    };
+  }, [apiUrl]);
 
   return (
     <div className="relative flex h-screen flex-col overflow-hidden">

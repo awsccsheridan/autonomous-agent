@@ -163,7 +163,7 @@ export class AgentStack extends cdk.Stack {
       description: "API for Bedrock Agent task tracker",
       defaultCorsPreflightOptions: {
         allowOrigins: apigateway.Cors.ALL_ORIGINS,
-        allowMethods: ["GET", "POST", "PATCH", "OPTIONS"],
+        allowMethods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
         allowHeaders: ["Content-Type"],
       },
     });
@@ -182,6 +182,10 @@ export class AgentStack extends cdk.Stack {
     const taskResource = tasksResource.addResource("{taskId}");
     taskResource.addMethod(
       "PATCH",
+      new apigateway.LambdaIntegration(proxyFunction)
+    );
+    taskResource.addMethod(
+      "DELETE",
       new apigateway.LambdaIntegration(proxyFunction)
     );
 

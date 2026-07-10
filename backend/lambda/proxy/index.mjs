@@ -3,7 +3,7 @@ import {
   InvokeAgentCommand,
 } from "@aws-sdk/client-bedrock-agent-runtime";
 import { randomUUID } from "crypto";
-import { createTask, listTasks, updateTask } from "./tasks-db.mjs";
+import { createTask, deleteTask, listTasks, updateTask } from "./tasks-db.mjs";
 import {
   isCompleteIntent,
   isGenericAgentReply,
@@ -25,7 +25,7 @@ function response(statusCode, body) {
       "Content-Type": "application/json",
       "Access-Control-Allow-Origin": "*",
       "Access-Control-Allow-Headers": "Content-Type",
-      "Access-Control-Allow-Methods": "GET,POST,PATCH,OPTIONS",
+      "Access-Control-Allow-Methods": "GET,POST,PATCH,DELETE,OPTIONS",
     },
     body: JSON.stringify(body),
   };
@@ -323,6 +323,17 @@ export async function handler(event) {
       }
 
       return response(200, { message: "Task updated", task });
+    }
+
+    if (event.httpMethod === "DELETE" && path.includes("/tasks/")) {
+      const taskId = parseTaskIdFromPath(path);
+
+      if (!taskId) {
+        return response(400, { error: "taskId is required" });
+      }
+
+      await deleteTask(taskId);
+      return response(200, { message: "Task deleted" });
     }
 
     if (event.httpMethod === "POST" && path.endsWith("/chat")) {

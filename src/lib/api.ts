@@ -41,6 +41,20 @@ export async function updateTaskApi(
   return data.task;
 }
 
+export async function deleteTaskApi(
+  apiUrl: string,
+  taskId: string
+): Promise<void> {
+  const response = await fetch(`${apiUrl}/tasks/${taskId}`, {
+    method: "DELETE",
+  });
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new Error(data.error || "Failed to delete task");
+  }
+}
+
 export async function sendChatMessage(
   apiUrl: string,
   message: string,

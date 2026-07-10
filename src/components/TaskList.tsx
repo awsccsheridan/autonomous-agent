@@ -9,6 +9,7 @@ type TaskListProps = {
   filter: TaskFilter;
   onFilterChange: (filter: TaskFilter) => void;
   onToggleComplete: (task: Task) => void;
+  onDelete: (task: Task) => void;
   onRefresh: () => void;
   updatingTaskId: string | null;
   isRefreshing: boolean;
@@ -56,6 +57,7 @@ export function TaskList({
   filter,
   onFilterChange,
   onToggleComplete,
+  onDelete,
   onRefresh,
   updatingTaskId,
   isRefreshing,
@@ -155,10 +157,22 @@ export function TaskList({
             return (
               <article
                 key={task.taskId}
-                className={`sb-stat-card rounded-3xl p-4 transition ${
+                className={`sb-stat-card relative rounded-3xl p-4 transition ${
                   isDone ? "opacity-70" : "hover:border-[var(--sb-border-strong)]"
                 }`}
               >
+                <button
+                  type="button"
+                  onClick={() => onDelete(task)}
+                  disabled={isUpdating}
+                  aria-label={`Delete "${task.title}"`}
+                  className="absolute right-3 top-3 flex h-6 w-6 items-center justify-center rounded-lg text-[var(--sb-text-muted)] opacity-0 transition hover:bg-red-500/10 hover:text-red-400 disabled:opacity-50 group-hover:opacity-100 [article:hover_&]:opacity-100"
+                >
+                  <svg viewBox="0 0 12 12" className="h-3 w-3" fill="currentColor">
+                    <path d="M2 2.5A.5.5 0 0 1 2.5 2h7a.5.5 0 0 1 0 1H9v6.5a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V3H2.5A.5.5 0 0 1 2 2.5ZM4 3v6.5h4V3H4Zm1-1.5h2v.5H5V1.5Z" />
+                  </svg>
+                </button>
+
                 <div className="flex items-start gap-4">
                   <button
                     type="button"

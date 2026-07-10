@@ -5,6 +5,7 @@ import { ChatPanel } from "@/components/ChatPanel";
 import { SiteHeader } from "@/components/SiteHeader";
 import { TaskList } from "@/components/TaskList";
 import {
+  deleteTaskApi,
   fetchTasks,
   normalizeApiUrl,
   sendChatMessage,
@@ -134,6 +135,27 @@ export default function WorkspacePage() {
     }
   }
 
+  async function deleteTask(task: Task) {
+    if (!apiUrl || updatingTaskId) return;
+
+    setUpdatingTaskId(task.taskId);
+
+    try {
+      await deleteTaskApi(apiUrl, task.taskId);
+      setTasks((current) => current.filter((t) => t.taskId !== task.taskId));
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Could not delete task";
+
+      setMessages((current) => [
+        ...current,
+        createMessage("agent", `Couldn't delete "${task.title}": ${message}`),
+      ]);
+    } finally {
+      setUpdatingTaskId(null);
+    }
+  }
+
   async function toggleTaskComplete(task: Task) {
     if (!apiUrl || updatingTaskId) return;
 
@@ -198,6 +220,7 @@ export default function WorkspacePage() {
             filter={filter}
             onFilterChange={setFilter}
             onToggleComplete={toggleTaskComplete}
+            onDelete={deleteTask}
             onRefresh={loadTasks}
             updatingTaskId={updatingTaskId}
             isRefreshing={isRefreshing}

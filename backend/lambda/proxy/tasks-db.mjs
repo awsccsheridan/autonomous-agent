@@ -1,6 +1,7 @@
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import {
   DynamoDBDocumentClient,
+  DeleteCommand,
   PutCommand,
   ScanCommand,
 } from "@aws-sdk/lib-dynamodb";
@@ -92,4 +93,13 @@ export async function updateTask(taskId, updates) {
   );
 
   return next;
+}
+
+export async function deleteTask(taskId) {
+  await dynamo.send(
+    new DeleteCommand({
+      TableName: tableName(),
+      Key: { taskId },
+    })
+  );
 }

@@ -72,58 +72,48 @@ export function TaskList({
   ];
 
   return (
-    <section className="sb-panel flex h-full min-h-[620px] flex-col rounded-[2rem]">
-      <header className="border-b border-[var(--sb-border)] px-5 py-5">
-        <div className="mb-5 flex items-start justify-between gap-4">
+    <section className="sb-panel flex h-full min-h-0 flex-col rounded-[2rem]">
+      <header className="border-b border-[var(--sb-border)] px-5 py-3">
+        <div className="mb-3 flex items-center justify-between gap-4">
           <div>
             <p className="sb-label">DynamoDB task dashboard</p>
-            <h2 className="mt-2 text-2xl font-bold text-[var(--sb-text)]">
-              My Tasks
-            </h2>
-            <p className="mt-2 text-sm text-[var(--sb-text-muted)]">
-              Tasks created or updated by the Bedrock Agent appear here.
-            </p>
+            <h2 className="text-base font-bold text-[var(--sb-text)]">My Tasks</h2>
           </div>
 
           <button
             type="button"
             onClick={onRefresh}
             disabled={isRefreshing}
-            className="sb-btn-outline rounded-xl px-3 py-2 disabled:opacity-50"
+            className="sb-btn-outline rounded-xl px-3 py-1.5 text-sm disabled:opacity-50"
           >
             {isRefreshing ? "Syncing" : "Refresh"}
           </button>
         </div>
 
-        <div className="mb-5 rounded-2xl border border-[var(--sb-border)] bg-[var(--sb-bg-elevated)] p-4">
-          <div className="mb-2 flex items-center justify-between text-sm">
-            <span className="font-bold text-[var(--sb-text)]">
-              Completion progress
-            </span>
-            <span className="font-[family-name:var(--font-mono)] text-[var(--sb-cyan)]">
-              {completionPercent}%
-            </span>
+        <div className="mb-3 flex items-center gap-3">
+          <div className="flex-1">
+            <div className="h-2 overflow-hidden rounded-full bg-white/10">
+              <div
+                className="h-full rounded-full bg-[var(--sb-cyan)] transition-all duration-500"
+                style={{ width: `${completionPercent}%` }}
+              />
+            </div>
           </div>
-
-          <div className="h-3 overflow-hidden rounded-full bg-white/10">
-            <div
-              className="h-full rounded-full bg-[var(--sb-cyan)] transition-all duration-500"
-              style={{ width: `${completionPercent}%` }}
-            />
-          </div>
-
-          <p className="mt-2 text-xs text-[var(--sb-text-muted)]">
-            {activeCount} active · {doneCount} completed · {tasks.length} total
-          </p>
+          <span className="font-[family-name:var(--font-mono)] text-xs text-[var(--sb-cyan)]">
+            {completionPercent}%
+          </span>
+          <span className="text-xs text-[var(--sb-text-muted)]">
+            {activeCount} active · {doneCount} done
+          </span>
         </div>
 
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-1.5">
           {filters.map((item) => (
             <button
               key={item.id}
               type="button"
               onClick={() => onFilterChange(item.id)}
-              className={`rounded-xl px-3 py-2 font-[family-name:var(--font-mono)] text-[0.6875rem] font-bold uppercase tracking-wider transition ${
+              className={`rounded-lg px-2.5 py-1 font-[family-name:var(--font-mono)] text-[0.6875rem] font-bold uppercase tracking-wider transition ${
                 filter === item.id
                   ? "bg-[var(--sb-cyan)] text-[#071018]"
                   : "border border-[var(--sb-border)] text-[var(--sb-text-muted)] hover:border-[var(--sb-cyan)] hover:text-[var(--sb-cyan)]"
@@ -135,7 +125,7 @@ export function TaskList({
         </div>
       </header>
 
-      <div className="flex-1 space-y-3 overflow-y-auto px-5 py-5">
+      <div className="flex-1 space-y-3 overflow-y-auto px-5 py-4">
         {visibleTasks.length === 0 ? (
           <div className="flex h-full min-h-[280px] flex-col items-center justify-center rounded-3xl border border-dashed border-[var(--sb-border)] px-6 text-center">
             <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-[var(--sb-border-strong)] bg-[var(--sb-cyan-dim)]">

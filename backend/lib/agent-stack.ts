@@ -185,24 +185,12 @@ export class AgentStack extends cdk.Stack {
       new apigateway.LambdaIntegration(proxyFunction)
     );
 
+    // RestApi adds a duplicate Endpoint output; keep only our student-facing ApiUrl.
+    api.node.tryRemoveChild("Endpoint");
+
     new cdk.CfnOutput(this, "ApiUrl", {
       value: api.url,
-      description: "API Gateway URL for autonomous agent backend",
-    });
-
-    new cdk.CfnOutput(this, "AgentId", {
-      value: bedrockAgent.attrAgentId,
-      description: "Bedrock Agent ID",
-    });
-
-    new cdk.CfnOutput(this, "AgentRoleArn", {
-      value: agentRole.roleArn,
-      description: "Bedrock Agent service role ARN",
-    });
-
-    new cdk.CfnOutput(this, "FoundationModel", {
-      value: FOUNDATION_MODEL,
-      description: "Inference profile ID for the Bedrock Agent",
+      description: "API Gateway URL — set as NEXT_PUBLIC_API_URL in the frontend",
     });
   }
 }

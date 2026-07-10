@@ -116,7 +116,7 @@ export default function Home() {
 
             <blockquote className="mt-7 rounded-3xl border border-[var(--sb-border)] bg-[var(--sb-bg-elevated)] p-5">
               <p className="text-xl font-semibold text-[var(--sb-text)]">
-                “Don’t just ask AI for answers — teach it to take useful
+                “Don’t just ask AI for answers - teach it to take useful
                 actions.”
               </p>
               <p className="mt-2 text-sm text-[var(--sb-text-muted)]">

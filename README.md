@@ -269,7 +269,7 @@ Install all of the following **before** the workshop starts.
 
 | Tool | Minimum Version | Download / Install Link |
 |---|---|---|
-| Node.js | **20.9.0 or higher** (Next.js 16 requires this — Node 18 will fail) | [https://nodejs.org/en/download](https://nodejs.org/en/download) |
+| Node.js | **22.x LTS** (required — Node 20 and below will fail) | [https://nodejs.org/en/download](https://nodejs.org/en/download) |
 | Git | any recent version | [https://git-scm.com/downloads](https://git-scm.com/downloads) |
 | Visual Studio Code | any recent version | [https://code.visualstudio.com/download](https://code.visualstudio.com/download) |
 | AWS CLI v2 | **2.32.0 or higher** (needed for the `aws login` command) | [https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html) |

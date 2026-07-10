@@ -51,12 +51,19 @@ export default function WorkspacePage() {
   const [messages, setMessages] = useState<ChatMessage[]>([
     createMessage(
       "agent",
-      "Hey! I’m your AI to-do assistant. Add tasks in plain English, ask what’s on your list, or tell me when you’ve finished something — even vaguely, like “I done the homework” — and I’ll figure out which task you mean."
+      "Hey! I’m your AI to-do assistant. Add tasks in plain English, ask what’s on your list, or tell me when you’ve finished something - even vaguely, like “I done the homework” - and I’ll figure out which task you mean."
     ),
   ]);
   const [isLoading, setIsLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [updatingTaskId, setUpdatingTaskId] = useState<string | null>(null);
+
+  const completionPercent =
+    tasks.length === 0
+      ? 0
+      : Math.round(
+          (tasks.filter((t) => t.status === "completed").length / tasks.length) * 100
+        );
 
   const loadTasks = useCallback(async () => {
     if (!apiUrl) return;
@@ -161,27 +168,22 @@ export default function WorkspacePage() {
   }, [loadTasks]);
 
   return (
-    <div className="relative min-h-screen overflow-hidden">
-      <div className="pointer-events-none absolute left-[-180px] top-[-180px] h-[420px] w-[420px] rounded-full bg-[var(--sb-cyan)]/10 blur-3xl" />
-      <div className="pointer-events-none absolute bottom-[-220px] right-[-180px] h-[500px] w-[500px] rounded-full bg-blue-500/10 blur-3xl" />
+    <div className="relative flex h-screen flex-col overflow-hidden">
+      <div className="pointer-events-none fixed left-[-180px] top-[-180px] h-[420px] w-[420px] rounded-full bg-[var(--sb-cyan)]/10 blur-3xl" />
+      <div className="pointer-events-none fixed bottom-[-220px] right-[-180px] h-[500px] w-[500px] rounded-full bg-blue-500/10 blur-3xl" />
 
       <SiteHeader />
 
-      <main className="relative z-10 mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <section className="mb-7 rounded-[2rem] border border-[var(--sb-border)] bg-[var(--sb-bg-card)] p-6 backdrop-blur">
-          <div>
-            <p className="sb-label">Agent Workspace</p>
-            <h1 className="mt-2 text-3xl font-bold tracking-tight text-[var(--sb-text)] sm:text-4xl">
-              AI Task Tracker
-            </h1>
-            <p className="mt-3 max-w-3xl text-sm leading-relaxed text-[var(--sb-text-muted)] sm:text-base">
-              Use this workspace to chat with your Bedrock Agent, create tasks from natural
-                language, and track everything in a live DynamoDB-powered dashboard.
-            </p>
-          </div>
-        </section>
+      <main className="relative z-10 flex min-h-0 flex-1 flex-col px-4 py-4 sm:px-6 lg:px-8">
+        <div className="mb-3 flex items-center gap-2">
+          <p className="sb-label">Agent Workspace</p>
+          <span className="text-[var(--sb-border)]">·</span>
+          <h1 className="text-sm font-bold text-[var(--sb-text)]">
+            AI Task Tracker
+          </h1>
+        </div>
 
-        <div className="grid gap-6 lg:grid-cols-2 lg:items-stretch">
+        <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-2">
           <ChatPanel
             messages={messages}
             input={input}
@@ -192,13 +194,15 @@ export default function WorkspacePage() {
           />
 
           <TaskList
-                      tasks={tasks}
-                      filter={filter}
-                      onFilterChange={setFilter}
-                      onToggleComplete={toggleTaskComplete}
-                      onRefresh={loadTasks}
-                      updatingTaskId={updatingTaskId}
-                      isRefreshing={isRefreshing} completionPercent={0}          />
+            tasks={tasks}
+            filter={filter}
+            onFilterChange={setFilter}
+            onToggleComplete={toggleTaskComplete}
+            onRefresh={loadTasks}
+            updatingTaskId={updatingTaskId}
+            isRefreshing={isRefreshing}
+            completionPercent={completionPercent}
+          />
         </div>
       </main>
     </div>
